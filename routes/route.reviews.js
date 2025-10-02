@@ -5,9 +5,30 @@ import uploader from "../middlewares/cloudinary.config.js"; // 👈 multer-cloud
 const router = express.Router();
 
 // GET all reviews
+
 router.get("/", async (req, res) => {
   try {
-    const reviews = await Review.find();
+    const { country, city } = req.query;
+    let query = {};
+
+    if (country) query.destinationCode = country;
+    if (city) query.city = city;
+
+    const reviews = await Review.find(query).sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+router.get("/", async (req, res) => {
+  try {
+    const { country, city } = req.query;
+    let query = {};
+
+    if (country) query.destinationCode = country;
+    if (city) query.city = city;
+
+    const reviews = await Review.find(query).sort({ createdAt: -1 });
     res.json(reviews);
   } catch (err) {
     res.status(500).json({ error: err.message });
