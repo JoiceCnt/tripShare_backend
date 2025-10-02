@@ -1,11 +1,11 @@
 import express from "express";
 import Review from "../models/Review.js";
 import uploader from "../middlewares/cloudinary.config.js"; // 👈 multer-cloudinary
+import isAuth from "../middlewares/isAuth.js";
 
 const router = express.Router();
 
-// GET all reviews
-
+// =================== GET all reviews ===================
 router.get("/", async (req, res) => {
   try {
     const { country, city } = req.query;
@@ -14,56 +14,54 @@ router.get("/", async (req, res) => {
     if (country) query.destinationCode = country;
     if (city) query.city = city;
 
-    const reviews = await Review.find(query).sort({ createdAt: -1 });
-    res.json(reviews);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-router.get("/", async (req, res) => {
-  try {
-    const { country, city } = req.query;
-    let query = {};
+    // 👇 popula tanto o autor da review quanto os autores dos comentários
+    const reviews = await Review.find(query)
+      .populate("user", "name surname email") // <── aqui popula o autor da review
+      .populate("comments.user", "name surname email")
+      .sort({ createdAt: -1 });
 
-    if (country) query.destinationCode = country;
-    if (city) query.city = city;
-
-    const reviews = await Review.find(query).sort({ createdAt: -1 });
     res.json(reviews);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST a new review (with optional image + ratings + city)
-router.post("/:destinationCode", uploader.single("image"), async (req, res) => {
-  try {
-    let ratings = {};
-    if (req.body.ratings) {
-      try {
-        ratings = JSON.parse(req.body.ratings); // 👈 garante que seja objeto
-      } catch (err) {
-        console.warn("⚠️ Ratings JSON parse failed:", err.message);
+// =================== POST new review ===================
+router.post(
+  "/:destinationCode",
+  isAuth,
+  uploader.single("image"),
+  async (req, res) => {
+    try {
+      let ratings = {};
+      if (req.body.ratings) {
+        try {
+          ratings = JSON.parse(req.body.ratings);
+        } catch (err) {
+          console.warn("⚠️ Ratings JSON parse failed:", err.message);
+        }
       }
+
+      const newReview = await Review.create({
+        user: req.user._id, // agora obrigatório ter auth
+        destinationCode: req.params.destinationCode,
+        city: req.body.city || "Unknown",
+        text: req.body.text,
+        imageUrl: req.file ? req.file.path : null,
+        ratings,
+      });
+
+      await newReview.populate("user", "name surname email");
+
+      res.status(201).json(newReview);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
-
-    const newReview = await Review.create({
-      user: req.user?._id, // se tiver autenticação
-      destinationCode: req.params.destinationCode,
-      city: req.body.city || "Unknown",
-      text: req.body.text,
-      imageUrl: req.file ? req.file.path : null,
-      ratings,
-    });
-
-    res.status(201).json(newReview);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
-});
+);
 
-// UPDATE a review (text + city + optional new image + ratings)
-router.put("/:id", uploader.single("image"), async (req, res) => {
+// =================== UPDATE a review ===================
+router.put("/:id", isAuth, uploader.single("image"), async (req, res) => {
   try {
     let ratings = {};
     if (req.body.ratings) {
@@ -86,7 +84,9 @@ router.put("/:id", uploader.single("image"), async (req, res) => {
       req.params.id,
       updateData,
       { new: true }
-    );
+    )
+      .populate("user", "name surname email")
+      .populate("comments.user", "name surname email");
 
     if (!updatedReview) {
       return res.status(404).json({ error: "Review not found" });
@@ -98,14 +98,58 @@ router.put("/:id", uploader.single("image"), async (req, res) => {
   }
 });
 
-// DELETE a review
-router.delete("/:id", async (req, res) => {
+// =================== DELETE a review ===================
+router.delete("/:id", isAuth, async (req, res) => {
   try {
     const deletedReview = await Review.findByIdAndDelete(req.params.id);
     if (!deletedReview) {
       return res.status(404).json({ error: "Review not found" });
     }
     res.json({ message: "Review deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =================== ADD comment to review ===================
+router.post("/:id/comments", isAuth, async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ error: "Comment text required" });
+
+    const review = await Review.findById(req.params.id);
+    if (!review) return res.status(404).json({ error: "Review not found" });
+
+    review.comments.push({
+      user: req.user._id, // vem do isAuth
+      text,
+    });
+
+    await review.save();
+    await review.populate("comments.user", "name surname email");
+
+    res.status(201).json(review);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =================== DELETE a comment from review ===================
+router.delete("/:id/comments/:commentId", isAuth, async (req, res) => {
+  try {
+    const { id, commentId } = req.params;
+
+    const review = await Review.findById(id);
+    if (!review) return res.status(404).json({ error: "Review not found" });
+
+    review.comments = review.comments.filter(
+      (c) => c._id.toString() !== commentId
+    );
+
+    await review.save();
+    await review.populate("comments.user", "name surname email");
+
+    res.json(review);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

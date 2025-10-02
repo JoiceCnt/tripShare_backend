@@ -1,22 +1,34 @@
+// models/Review.js
 import mongoose from "mongoose";
 
-const reviewSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  destinationCode: { type: String, required: true }, // ISO2 do país
-  city: String,
-  text: { type: String },
-  imageUrl: { type: String }, // URL da imagem no Cloudinary
-  ratings: {
-    gastronomy: { type: Number, min: 0, max: 5, default: 0 },
-    events: { type: Number, min: 0, max: 5, default: 0 },
-    petFriendly: { type: Number, min: 0, max: 5, default: 0 },
-    kidsFriendly: { type: Number, min: 0, max: 5, default: 0 },
-    culture: { type: Number, min: 0, max: 5, default: 0 },
-    nature: { type: Number, min: 0, max: 5, default: 0 },
-    shopping: { type: Number, min: 0, max: 5, default: 0 },
-    safety: { type: Number, min: 0, max: 5, default: 0 },
+const commentSchema = new mongoose.Schema(
+  {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    text: { type: String, required: true },
   },
-  createdAt: { type: Date, default: Date.now },
-});
+  { timestamps: true }
+);
+
+const reviewSchema = new mongoose.Schema(
+  {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    destinationCode: { type: String, required: true },
+    city: { type: String },
+    text: { type: String, required: true },
+    imageUrl: { type: String },
+    ratings: {
+      gastronomy: { type: Number, default: 0 },
+      events: { type: Number, default: 0 },
+      petFriendly: { type: Number, default: 0 },
+      kidsFriendly: { type: Number, default: 0 },
+      culture: { type: Number, default: 0 },
+      nature: { type: Number, default: 0 },
+      shopping: { type: Number, default: 0 },
+      safety: { type: Number, default: 0 },
+    },
+    comments: [commentSchema],
+  },
+  { timestamps: true }
+);
 
 export default mongoose.model("Review", reviewSchema);
