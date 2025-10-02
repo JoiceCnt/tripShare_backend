@@ -3,17 +3,19 @@ import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_KEY,
-  api_secret: process.env.CLOUDINARY_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-
+console.log("✅ Cloudinary connected:", process.env.CLOUDINARY_CLOUD_NAME);
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "tripShare", // pasta no cloudinary
-    allowed_formats: ["jpg", "png", "jpeg", "gif"],
+    folder: "tripshare_reviews",
+    allowed_formats: ["jpg", "png", "jpeg", "webp"],
   },
 });
 
-export default multer({ storage });
+const uploader = multer({ storage });
+
+export default uploader;
