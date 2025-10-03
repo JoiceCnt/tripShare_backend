@@ -117,22 +117,23 @@ router.post("/:id/like", isAuth, async (req, res) => {
     const review = await Review.findById(req.params.id);
     if (!review) return res.status(404).json({ error: "Review not found" });
 
-    const userId = req.user._id;
-    const hasLiked = review.likes.includes(userId);
+    const userId = req.user._id.toString();
+
+    const hasLiked = review.likes.some((like) => like.toString() === userId);
 
     if (hasLiked) {
-      // unlike
-      review.likes.pull(userId);
+      review.likes = review.likes.filter((like) => like.toString() !== userId);
     } else {
-      // like
-      review.likes.push(userId);
+      review.likes.push(req.user._id);
     }
 
-    await review.save();
-    await review.populate("user", "name email");
+    // ⚡ salva ignorando validação de campos obrigatórios
+    await review.save({ validateBeforeSave: false });
 
+    await review.populate("user", "name email");
     res.json(review);
   } catch (err) {
+    console.error("❌ Error in LIKE route:", err.message, err);
     res.status(500).json({ error: err.message });
   }
 });
