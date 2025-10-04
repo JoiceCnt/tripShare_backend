@@ -8,7 +8,7 @@ import "dotenv/config";
 import authRoutes from "./routes/route.auth.js";
 import destinationRoutes from "./routes/route.destination.js";
 import reviewRoutes from "./routes/route.reviews.js";
-
+import favouritesRouter from "./routes/favourites.route.js";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5005;
@@ -21,7 +21,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/destinations", destinationRoutes);
 app.use("/api/reviews", reviewRoutes);
-
+app.use("/api/favourites", favouritesRouter);
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {

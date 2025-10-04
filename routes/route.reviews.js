@@ -111,46 +111,29 @@ router.delete("/:id", isAuth, async (req, res) => {
   }
 });
 
-// =================== ADD comment to review ===================
-router.post("/:id/comments", isAuth, async (req, res) => {
+// =================== LIKE / UNLIKE review ===================
+router.post("/:id/like", isAuth, async (req, res) => {
   try {
-    const { text } = req.body;
-    if (!text) return res.status(400).json({ error: "Comment text required" });
-
     const review = await Review.findById(req.params.id);
     if (!review) return res.status(404).json({ error: "Review not found" });
 
-    review.comments.push({
-      user: req.user._id, // vem do isAuth
-      text,
-    });
+    const userId = req.user._id.toString();
 
-    await review.save();
-    await review.populate("comments.user", "name surname email");
+    const hasLiked = review.likes.some((like) => like.toString() === userId);
 
-    res.status(201).json(review);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    if (hasLiked) {
+      review.likes = review.likes.filter((like) => like.toString() !== userId);
+    } else {
+      review.likes.push(req.user._id);
+    }
 
-// =================== DELETE a comment from review ===================
-router.delete("/:id/comments/:commentId", isAuth, async (req, res) => {
-  try {
-    const { id, commentId } = req.params;
+    // ⚡ salva ignorando validação de campos obrigatórios
+    await review.save({ validateBeforeSave: false });
 
-    const review = await Review.findById(id);
-    if (!review) return res.status(404).json({ error: "Review not found" });
-
-    review.comments = review.comments.filter(
-      (c) => c._id.toString() !== commentId
-    );
-
-    await review.save();
-    await review.populate("comments.user", "name surname email");
-
+    await review.populate("user", "name email");
     res.json(review);
   } catch (err) {
+    console.error("❌ Error in LIKE route:", err.message, err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -26,6 +26,7 @@ const reviewSchema = new mongoose.Schema(
       shopping: { type: Number, default: 0 },
       safety: { type: Number, default: 0 },
     },
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     comments: [commentSchema],
   },
   { timestamps: true }
