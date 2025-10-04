@@ -8,7 +8,7 @@ import "dotenv/config";
 import authRoutes from "./routes/route.auth.js";
 import destinationRoutes from "./routes/route.destination.js";
 import reviewRoutes from "./routes/route.reviews.js";
-import favouritesRouter from "./routes/favourites.routes.js";
+import favouritesRouter from "./routes/favourites.route.js";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5005;
