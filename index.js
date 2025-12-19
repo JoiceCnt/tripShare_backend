@@ -22,10 +22,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/destinations", destinationRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/favourites", favouritesRouter);
+app.use("/api/locations", locationsRoutes);
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
-    console.log("✅ Connected to MongoDB Atlas");
+    console.log(" Connected to MongoDB Atlas");
     app.listen(PORT, () => console.log("server running on port " + PORT));
   })
-  .catch((err) => console.error("❌ MongoDB connection error:", err.message));
+  .catch((err) => console.error(" MongoDB connection error:", err.message));
